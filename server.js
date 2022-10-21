@@ -7,6 +7,7 @@ const mongoose = require("mongoose");
 app.use(express.json());
 app.use("/api/v1/members", memberRoutes);
 
+// Connecting to database
 try {
   mongoose.connect(
     process.env.DBURL,
@@ -18,16 +19,17 @@ try {
       else console.log("Connected to database");
     }
   );
-
-  app.listen(PORT, (req, res) => {
-    console.log(`Application Server started on port ${PORT}`);
-  });
-
-  app.get("/", (req, res) => {
-    res.send("<h1>SamNet Application Welcomes You</h1>");
-  });
 } catch (error) {
   console.log(
     `Could not connected to database or Start Server with error ${error}`
   );
 }
+
+// Starting express Server
+app.listen(PORT, (req, res) => {
+  console.log(`Application Server started on port ${PORT}`);
+});
+
+app.get("/", (req, res) => {
+  res.send("<h1>SamNet Application Welcomes You</h1>");
+});
