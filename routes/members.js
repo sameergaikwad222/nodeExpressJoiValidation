@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Member = require("../models/Member");
 const Joi = require("joi");
+const getPaginationPageSize = require("../utilFunctions/paginations");
 
 // Joi Schema
 
@@ -24,9 +25,34 @@ const validateMember = function (req, res, next) {
   }
 };
 
-// Get All Members
+// Get All Members with Paginations
 router.get("/", async (req, res) => {
-  res.json(await Member.find());
+  let { page, size, sort } = req.query;
+  let requestedUsers = [];
+
+  if (!page) page = 1; //Default value is One
+  if (!size) size = 10; //Default size is 10
+  if (!sort) sort = 1; //Default sort is Ascending
+
+  let requestedSkip = 0;
+  const requestedSize = parseInt(size);
+  const requestedSort = parseInt(sort);
+  const requestedPage = parseInt(page);
+  const SET_PAGE_SIZE = getPaginationPageSize(requestedSize);
+
+  if (SET_PAGE_SIZE) {
+    requestedSkip = (requestedPage - 1) * SET_PAGE_SIZE;
+    requestedUsers = await Member.find()
+      .sort({ _id: requestedSort })
+      .skip(requestedSkip)
+      .limit(SET_PAGE_SIZE);
+  } else {
+    requestedUsers = await Member.find()
+      .sort({ _id: requestedSort })
+      .limit(SET_PAGE_SIZE);
+  }
+
+  res.status(200).json(requestedUsers);
 });
 
 // Get Member by Id
