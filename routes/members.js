@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const Member = require("../models/Member");
 const Joi = require("joi");
-const getPaginationPageSize = require("../utilFunctions/paginations");
 
 // Joi Schema
 
@@ -28,17 +27,15 @@ const validateMember = function (req, res, next) {
 // Get All Members with Paginations
 router.get("/", async (req, res) => {
   try {
-    const page = parseInt(req.params.page) - 1 || 0;
-    const limit = parseInt(req.params.limit) || 5;
-    const searchFirstName = req.params.searchFirstName || "";
-    const searchLastName = req.params.searchLastName || "";
-    let sortBy = req.params.sortBy || [{ createdDate: "asc" }];
+    const page = parseInt(req.query.page) - 1 || 0;
+    const limit = parseInt(req.query.limit) || 5;
+    const searchFirstName = req.query.searchFirstName || "";
+    const searchLastName = req.query.searchLastName || "";
 
     const users = await Member.find({
       first_name: { $regex: searchFirstName, $options: "i" },
       last_name: { $regex: searchLastName, $options: "i" },
     })
-      .sort(sortBy)
       .skip(page * limit)
       .limit(limit);
 
@@ -52,6 +49,7 @@ router.get("/", async (req, res) => {
       totalUsers,
       page: page + 1,
       limit,
+      users,
     };
     res.status(200).json(response);
   } catch (error) {
