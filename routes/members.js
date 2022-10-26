@@ -27,32 +27,37 @@ const validateMember = function (req, res, next) {
 
 // Get All Members with Paginations
 router.get("/", async (req, res) => {
-  let { page, size, sort } = req.query;
-  let requestedUsers = [];
+  try {
+    const page = parseInt(req.params.page) - 1 || 0;
+    const limit = parseInt(req.params.limit) || 5;
+    const searchFirstName = req.params.searchFirstName || "";
+    const searchLastName = req.params.searchLastName || "";
+    let sortBy = req.params.sortBy || [{ createdDate: "asc" }];
 
-  if (!page) page = 1; //Default value is One
-  if (!size) size = 10; //Default size is 10
-  if (!sort) sort = 1; //Default sort is Ascending
+    const users = await Member.find({
+      first_name: { $regex: searchFirstName, $options: "i" },
+      last_name: { $regex: searchLastName, $options: "i" },
+    })
+      .sort(sortBy)
+      .skip(page * limit)
+      .limit(limit);
 
-  let requestedSkip = 0;
-  const requestedSize = parseInt(size);
-  const requestedSort = parseInt(sort);
-  const requestedPage = parseInt(page);
-  const SET_PAGE_SIZE = getPaginationPageSize(requestedSize);
+    const totalUsers = await Member.countDocuments({
+      first_name: { $regex: searchFirstName, $options: "i" },
+      last_name: { $regex: searchLastName, $options: "i" },
+    });
 
-  if (SET_PAGE_SIZE) {
-    requestedSkip = (requestedPage - 1) * SET_PAGE_SIZE;
-    requestedUsers = await Member.find()
-      .sort({ _id: requestedSort })
-      .skip(requestedSkip)
-      .limit(SET_PAGE_SIZE);
-  } else {
-    requestedUsers = await Member.find()
-      .sort({ _id: requestedSort })
-      .limit(SET_PAGE_SIZE);
+    const response = {
+      error: false,
+      totalUsers,
+      page: page + 1,
+      limit,
+    };
+    res.status(200).json(response);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
   }
-
-  res.status(200).json(requestedUsers);
 });
 
 // Get Member by Id
