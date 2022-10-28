@@ -1,31 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const Member = require("../models/Member");
-const Joi = require("joi");
-
+const {
+  validateSingleMember,
+  validateCreateMember,
+  validateGetAllMembers,
+} = require("../utilFunctions/joiValidations");
 // Joi Schema
 
-const memberSchema = Joi.object({
-  first_name: Joi.string().required(),
-  last_name: Joi.string().required(),
-  email: Joi.string().email().required(),
-  gender: Joi.string().valid("Male", "Female").required(),
-  ip_address: Joi.string().required(),
-}).unknown(false);
-
-// Middleware Validation
-
-const validateMember = function (req, res, next) {
-  const { error } = memberSchema.validate(req.body, { abortEarly: false });
-  if (error) {
-    res.status(401).json({ errorDetails: error.details });
-  } else {
-    next();
-  }
-};
-
-// Get All Members with Paginations
-router.get("/", async (req, res) => {
+// Get All Members with Paginations  ###################################JOI Validated
+router.get("/", validateGetAllMembers, async (req, res) => {
   try {
     const page = parseInt(req.query.page) - 1 || 0;
     const limit = parseInt(req.query.limit) || 5;
@@ -58,21 +42,21 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Get Member by Id
-router.get("/:id", async (req, res) => {
+// Get Member by Id  ###################################JOI Validated
+router.get("/:id", validateSingleMember, async (req, res) => {
   let memberId = req.params.id;
   res.status(200).json(await Member.findById(memberId).exec());
 });
 
-// Delete Member by Member Name
-router.delete("/:id", async (req, res) => {
+// Delete Member by Member Name ###################################JOI Validated
+router.delete("/:id", validateSingleMember, async (req, res) => {
   let memberId = req.params.id;
   const removedPost = await Member.deleteOne({ _id: memberId });
   res.json(removedPost);
 });
 
-// Create a Member with Post Method call
-router.post("/", validateMember, async (req, res) => {
+// Create a Member with Post Method call ###################################JOI Validated
+router.post("/", validateCreateMember, async (req, res) => {
   let { first_name, last_name, email, gender, ip_address } = req.body;
   const member = new Member({
     first_name,
@@ -94,7 +78,34 @@ router.post("/", validateMember, async (req, res) => {
 
 // Update a member
 router.patch("/:id", async (req, res) => {
+  console.log("Udpate patch method was hit");
   let memberId = req.params.id;
+  let user = await Member.findById(memberId).exec();
+  if (user) {
+    let { first_name, last_name, email, gender, ip_address } = req.body;
+    let updateObj = { first_name, last_name, email, gender, ip_address };
+
+    // cleaning objecet data for further updation
+    Object.keys(updateObj).forEach((key) => {
+      updateObj[key] === undefined && delete updateObj[key];
+    });
+    console.log(updateObj);
+    //Updadte the member with clean data
+    Object.keys(updateObj).forEach((key) => {
+      user[key] = updateObj[key];
+    });
+    await user
+      .save()
+      .then(() => {
+        res.status(201).json({ updatedMember: user });
+      })
+      .catch((e) => {
+        console.log(e);
+        res.status(501).json({ errorMessage: e });
+      });
+  } else {
+    res.status(401).json({ errorMessage: "No user found" });
+  }
   const updatePost = await Member.updateOne(
     { _id: memberId },
     {
