@@ -66,6 +66,7 @@ router.post("/", validateCreateMember, async (req, res) => {
     ip_address,
     createdDate: new Date(),
   });
+  k;
 
   try {
     const savedMember = await member.save();
@@ -78,7 +79,6 @@ router.post("/", validateCreateMember, async (req, res) => {
 
 // Update a member
 router.patch("/:id", async (req, res) => {
-  console.log("Udpate patch method was hit");
   let memberId = req.params.id;
   let user = await Member.findById(memberId).exec();
   if (user) {
@@ -89,11 +89,12 @@ router.patch("/:id", async (req, res) => {
     Object.keys(updateObj).forEach((key) => {
       updateObj[key] === undefined && delete updateObj[key];
     });
-    console.log(updateObj);
-    //Updadte the member with clean data
+    // clean data & set update object
     Object.keys(updateObj).forEach((key) => {
       user[key] = updateObj[key];
     });
+
+    //Update the user
     await user
       .save()
       .then(() => {
@@ -106,15 +107,6 @@ router.patch("/:id", async (req, res) => {
   } else {
     res.status(401).json({ errorMessage: "No user found" });
   }
-  const updatePost = await Member.updateOne(
-    { _id: memberId },
-    {
-      $set: {
-        first_name: req.body.first_name,
-      },
-    }
-  );
-  res.json(updatePost);
 });
 
 module.exports = router;
